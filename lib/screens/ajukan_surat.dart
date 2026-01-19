@@ -1,7 +1,7 @@
-// lib/screens/ajukan_surat.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme.dart';
-import '../models/submission.dart'; // <- import repo
 
 class AjukanSuratPage extends StatefulWidget {
   const AjukanSuratPage({super.key});
@@ -52,71 +52,79 @@ class _AjukanSuratPageState extends State<AjukanSuratPage> {
           ),
     );
 
-    if (choice != null) setState(() => selectedJenis = choice);
+    if (!mounted) return; // ✅ FIX LINTER
+
+    if (choice != null) {
+      setState(() => selectedJenis = choice);
+    }
   }
 
-  void submitPengajuan() {
-    // Validasi sederhana
+  /// 🔥 SUBMIT KE FIRESTORE
+  Future<void> submitPengajuan() async {
     if (selectedJenis == 'Pilih jenis surat') {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Pilih jenis surat dulu')));
+      _msg('Pilih jenis surat dulu');
       return;
     }
     if (nikCtrl.text.trim().isEmpty ||
         namaCtrl.text.trim().isEmpty ||
         alamatCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lengkapi semua field yang diperlukan')),
-      );
+      _msg('Lengkapi semua field yang diperlukan');
       return;
     }
 
-    // Buat submission baru dengan status "Menunggu"
-    final submission = Submission(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      jenis: selectedJenis,
-      nik: nikCtrl.text.trim(),
-      nama: namaCtrl.text.trim(),
-      alamat: alamatCtrl.text.trim(),
-      status: 'Menunggu',
-      createdAt: DateTime.now(),
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _msg('User belum login');
+      return;
+    }
 
-    // Simpan ke repository (in-memory)
-    SubmissionRepository.instance.add(submission);
+    try {
+      await FirebaseFirestore.instance.collection('submissions').add({
+        'userId': user.uid,
+        'jenis': selectedJenis,
+        'nik': nikCtrl.text.trim(),
+        'nama': namaCtrl.text.trim(),
+        'alamat': alamatCtrl.text.trim(),
+        'status': 'Menunggu',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
-    // Kosongkan form (opsional)
-    nikCtrl.clear();
-    namaCtrl.clear();
-    alamatCtrl.clear();
-    setState(() {
-      selectedJenis = 'Pilih jenis surat';
-    });
+      nikCtrl.clear();
+      namaCtrl.clear();
+      alamatCtrl.clear();
 
-    // Tampil dialog sukses lalu arahkan ke riwayat (pastikan route '/riwayat_surat' ada di main.dart)
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text('Pengajuan Terkirim'),
-            content: const Text(
-              'Permintaan surat telah dikirim. Silakan ambil fisik surat ke balai desa apabila disetujui.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // tutup dialog
-                  Navigator.pushReplacementNamed(
-                    context,
-                    '/riwayat_surat',
-                  ); // <- arahkan ke riwayat yang sudah ada
-                },
-                child: const Text('OK'),
+      if (!mounted) return; // ✅ FIX LINTER
+
+      setState(() {
+        selectedJenis = 'Pilih jenis surat';
+      });
+
+      showDialog(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+              title: const Text('Pengajuan Terkirim'),
+              content: const Text(
+                'Permintaan surat telah dikirim. Silakan ambil fisik surat ke balai desa apabila disetujui.',
               ),
-            ],
-          ),
-    );
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/riwayat_surat');
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      _msg('Gagal mengirim pengajuan');
+    }
+  }
+
+  void _msg(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -204,7 +212,6 @@ class _AjukanSuratPageState extends State<AjukanSuratPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -222,7 +229,6 @@ class _AjukanSuratPageState extends State<AjukanSuratPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
             ],
           ),
         ),

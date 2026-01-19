@@ -1,5 +1,7 @@
 // lib/screens/riwayat_surat.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme.dart';
 import '../models/submission.dart';
 
@@ -16,11 +18,24 @@ class _RiwayatSuratPageState extends State<RiwayatSuratPage> {
   @override
   void initState() {
     super.initState();
-    refresh();
+    _loadRiwayat();
   }
 
-  void refresh() {
-    items = SubmissionRepository.instance.getAll();
+  /// 🔥 Ambil riwayat surat dari Firestore (BY USER LOGIN)
+  Future<void> _loadRiwayat() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snap =
+        await FirebaseFirestore.instance
+            .collection('submissions')
+            .where('userId', isEqualTo: user.uid)
+            //.orderBy('createdAt', descending: true)
+            .get();
+
+    // FIX: urutan argumen dariMap dan cast data
+    items = snap.docs.map((d) => Submission.fromMap(d.data(), d.id)).toList();
+
     setState(() {});
   }
 
@@ -78,7 +93,6 @@ class _RiwayatSuratPageState extends State<RiwayatSuratPage> {
             style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
           const SizedBox(height: 6),
-          // optional additional instruction text (mirip Figma)
           Text(
             s.status == 'Selesai'
                 ? 'Dapat diambil di Balai Desa mulai tanggal ${s.createdAt.add(const Duration(days: 1)).day.toString().padLeft(2, '0')} ${_monthName(s.createdAt.add(const Duration(days: 1)).month)} ${s.createdAt.year}.'

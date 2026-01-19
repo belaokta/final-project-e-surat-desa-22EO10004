@@ -1,6 +1,7 @@
-// lib/screens/login_user.dart
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginUserPage extends StatefulWidget {
   const LoginUserPage({super.key});
@@ -13,6 +14,63 @@ class _LoginUserPageState extends State<LoginUserPage> {
   bool rememberMe = false;
   bool obscurePassword = true;
 
+  final TextEditingController _emailCtrl = TextEditingController();
+  final TextEditingController _passCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
+  }
+
+  /// 🔥 LOGIN FIREBASE + CEK VERIFIKASI
+  Future<void> _login() async {
+    try {
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+      );
+
+      final uid = cred.user!.uid;
+
+      // ambil data user
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!doc.exists) {
+        throw Exception('Data user tidak ditemukan');
+      }
+
+      final data = doc.data()!;
+      final bool isVerified = data['isVerified'] ?? false;
+
+      if (!isVerified) {
+        await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
+        _showMessage('Akun belum diverifikasi oleh admin');
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/dashboard_user');
+    } on FirebaseAuthException catch (e) {
+      String msg = 'Login gagal';
+      if (e.code == 'user-not-found') {
+        msg = 'Email tidak terdaftar';
+      } else if (e.code == 'wrong-password') {
+        msg = 'Password salah';
+      }
+
+      if (!mounted) return;
+      _showMessage(msg);
+    }
+  }
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,10 +81,7 @@ class _LoginUserPageState extends State<LoginUserPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6A5AE0), // Ungu atas
-              Color(0xFFFFFFFF), // Putih bawah
-            ],
+            colors: [Color(0xFF6A5AE0), Color(0xFFFFFFFF)],
             stops: [0.0, 0.85],
           ),
         ),
@@ -38,7 +93,6 @@ class _LoginUserPageState extends State<LoginUserPage> {
               children: [
                 const SizedBox(height: 30),
 
-                // 🔹 Judul
                 const Text(
                   "e-Surat Desa",
                   style: TextStyle(
@@ -53,6 +107,7 @@ class _LoginUserPageState extends State<LoginUserPage> {
 
                 // 🔹 Input Email
                 TextField(
+                  controller: _emailCtrl,
                   decoration: InputDecoration(
                     labelText: "Email",
                     labelStyle: const TextStyle(color: Colors.black54),
@@ -77,6 +132,7 @@ class _LoginUserPageState extends State<LoginUserPage> {
 
                 // 🔹 Input Password
                 TextField(
+                  controller: _passCtrl,
                   obscureText: obscurePassword,
                   decoration: InputDecoration(
                     labelText: "Password",
@@ -113,7 +169,6 @@ class _LoginUserPageState extends State<LoginUserPage> {
 
                 const SizedBox(height: 12),
 
-                // 🔹 Remember Me + Forgot Password
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -152,7 +207,7 @@ class _LoginUserPageState extends State<LoginUserPage> {
 
                 const SizedBox(height: 20),
 
-                // 🔹 Tombol Login
+                // 🔹 Tombol Login (LOGIC DIGANTI)
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -164,12 +219,7 @@ class _LoginUserPageState extends State<LoginUserPage> {
                       ),
                       elevation: 3,
                     ),
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/dashboard_user',
-                      );
-                    },
+                    onPressed: _login,
                     child: const Text(
                       "Login",
                       style: TextStyle(
@@ -183,7 +233,6 @@ class _LoginUserPageState extends State<LoginUserPage> {
 
                 const SizedBox(height: 30),
 
-                // 🔹 Link Daftar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

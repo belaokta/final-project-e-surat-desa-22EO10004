@@ -1,5 +1,6 @@
-// lib/screens/admin_login.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme.dart';
 
 class AdminLoginPage extends StatefulWidget {
@@ -13,35 +14,66 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
 
-  // Email & password default (misal dari desa)
-  final String adminEmail = 'admin@desa.id';
-  final String adminPassword = '123456';
-
   bool loading = false;
 
-  void loginAdmin() async {
+  /// 🔥 LOGIN ADMIN VIA FIREBASE
+  Future<void> loginAdmin() async {
     final email = emailCtrl.text.trim();
     final pass = passCtrl.text.trim();
 
     if (email.isEmpty || pass.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Isi email & password')));
+      _showMessage('Isi email & password');
       return;
     }
 
     setState(() => loading = true);
-    await Future.delayed(const Duration(milliseconds: 400)); // simulasi proses
 
-    if (email == adminEmail && pass == adminPassword) {
-      Navigator.pushReplacementNamed(context, '/dashboard_admin');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email atau password salah!')),
+    try {
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: pass,
       );
+
+      final uid = cred.user!.uid;
+
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!doc.exists) {
+        throw Exception('Data admin tidak ditemukan');
+      }
+
+      final data = doc.data()!;
+      final role = data['role'];
+
+      if (role != 'admin') {
+        await FirebaseAuth.instance.signOut();
+        _showMessage('Akun ini bukan admin');
+        setState(() => loading = false);
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/dashboard_admin');
+    } on FirebaseAuthException catch (e) {
+      String msg = 'Login gagal';
+
+      if (e.code == 'user-not-found') {
+        msg = 'Admin tidak terdaftar';
+      } else if (e.code == 'wrong-password') {
+        msg = 'Password salah';
+      }
+
+      _showMessage(msg);
+    } catch (e) {
+      _showMessage(e.toString());
     }
 
     setState(() => loading = false);
+  }
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -74,7 +106,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
               ),
               const SizedBox(height: 30),
 
-              // Input email
               const Text('Email', style: AppTextStyle.inputLabel),
               const SizedBox(height: 8),
               TextField(
@@ -91,7 +122,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
               const SizedBox(height: 20),
 
-              // Input password
               const Text('Password', style: AppTextStyle.inputLabel),
               const SizedBox(height: 8),
               TextField(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme.dart';
 
 class ProfileUserPage extends StatelessWidget {
@@ -6,6 +8,8 @@ class ProfileUserPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil'),
@@ -13,51 +17,68 @@ class ProfileUserPage extends StatelessWidget {
         elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _infoBox(label: 'Nama Lengkap', value: 'Bebe'),
-              const SizedBox(height: 12),
-              _infoBox(label: 'NIK', value: '1234567890'),
-              const SizedBox(height: 12),
-              _infoBox(label: 'Alamat', value: 'Yogyakarta'),
-              const SizedBox(height: 12),
-              _infoBox(label: 'Email', value: 'bebe@email.com'),
-              const Spacer(),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/login_user');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 60,
-                      vertical: 14,
+        child: FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Center(child: Text('Data user tidak ditemukan'));
+            }
+
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _infoBox(label: 'Nama Lengkap', value: data['nama'] ?? '-'),
+                  const SizedBox(height: 12),
+                  _infoBox(label: 'NIK', value: data['nik'] ?? '-'),
+                  const SizedBox(height: 12),
+                  _infoBox(label: 'Alamat', value: data['alamat'] ?? '-'),
+                  const SizedBox(height: 12),
+                  _infoBox(label: 'Email', value: data['email'] ?? '-'),
+                  const Spacer(),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                        if (!context.mounted) return;
+                        Navigator.pushReplacementNamed(context, '/choose_role');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 60,
+                          vertical: 14,
+                        ),
+                      ),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+                  const SizedBox(height: 30),
+                ],
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
+            );
+          },
         ),
       ),
 
-      // ✅ Bagian yang ditambahkan agar navigasi berfungsi
+      // ❌ TIDAK DIUBAH
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 2,
         selectedItemColor: AppColors.primary,
@@ -67,8 +88,6 @@ class ProfileUserPage extends StatelessWidget {
             Navigator.pushReplacementNamed(context, '/dashboard_user');
           } else if (index == 1) {
             Navigator.pushReplacementNamed(context, '/status_surat');
-          } else if (index == 2) {
-            // Halaman profil (tetap di sini)
           }
         },
         items: const [
@@ -83,6 +102,7 @@ class ProfileUserPage extends StatelessWidget {
     );
   }
 
+  // ❌ TIDAK DIUBAH
   Widget _infoBox({required String label, required String value}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

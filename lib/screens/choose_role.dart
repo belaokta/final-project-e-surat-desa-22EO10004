@@ -1,4 +1,3 @@
-// lib/screens/choose_role.dart
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -16,10 +15,7 @@ class ChooseRolePage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 17, 83, 176), // Biru tua atas
-              Color(0xFFFFFFFF), // Putih bawah
-            ],
+            colors: [Color.fromARGB(255, 17, 83, 176), Color(0xFFFFFFFF)],
             stops: [0.0, 0.85],
           ),
         ),
@@ -30,17 +26,12 @@ class ChooseRolePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 const SizedBox(height: 100),
-
-                // 🔹 Ikon surat
                 const Icon(
                   Symbols.description_rounded,
                   size: 90,
                   color: Color.fromARGB(255, 250, 250, 250),
                 ),
-
                 const SizedBox(height: 24),
-
-                // 🔹 Judul
                 const Text(
                   'Masuk ke e-Surat Desa',
                   textAlign: TextAlign.center,
@@ -48,13 +39,9 @@ class ChooseRolePage extends StatelessWidget {
                     color: Color.fromARGB(255, 246, 246, 247),
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
                   ),
                 ),
-
                 const SizedBox(height: 6),
-
-                // 🔹 Subjudul
                 const Text(
                   'Pilih peran untuk melanjutkan',
                   textAlign: TextAlign.center,
@@ -64,10 +51,7 @@ class ChooseRolePage extends StatelessWidget {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-
                 const SizedBox(height: 60),
-
-                // 🔹 Tombol Login Pengguna
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -90,10 +74,7 @@ class ChooseRolePage extends StatelessWidget {
                     child: const Text('Login sebagai Pengguna'),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // 🔹 Tombol Login Admin
                 SizedBox(
                   width: double.infinity,
                   height: 50,

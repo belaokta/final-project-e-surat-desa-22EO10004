@@ -1,5 +1,6 @@
-// lib/screens/register_user.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterUserPage extends StatefulWidget {
   const RegisterUserPage({super.key});
@@ -27,27 +28,66 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
     super.dispose();
   }
 
-  void _submitRegister() {
+  /// 🔥 REGISTER FIREBASE (AUTO UID)
+  void _submitRegister() async {
     if (_formKey.currentState?.validate() ?? false) {
-      showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: const Text('Pendaftaran Berhasil'),
-              content: const Text(
-                'Akun Anda terdaftar dan menunggu verifikasi oleh admin.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('OK'),
+      try {
+        // 1️⃣ Buat akun Firebase Auth
+        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailCtrl.text.trim(),
+          password: _passCtrl.text.trim(),
+        );
+
+        final uid = cred.user!.uid; // ✅ AUTO USER ID
+
+        // 2️⃣ Simpan ke Firestore
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'nama': _namaCtrl.text.trim(),
+          'nik': _nikCtrl.text.trim(),
+          'alamat': _alamatCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
+          'role': 'user',
+          'isVerified': true,
+          'createdAt': Timestamp.now(),
+        });
+
+        // 3️⃣ WAJIB logout (karena belum diverifikasi)
+        await FirebaseAuth.instance.signOut();
+
+        // 4️⃣ Dialog sukses (TAMPILAN ASLI)
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder:
+              (_) => AlertDialog(
+                title: const Text('Pendaftaran Berhasil'),
+                content: const Text(
+                  'Akun Anda terdaftar dan menunggu verifikasi oleh admin.',
                 ),
-              ],
-            ),
-      );
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context); // balik ke login
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+        );
+      } on FirebaseAuthException catch (e) {
+        String msg = 'Pendaftaran gagal';
+        if (e.code == 'email-already-in-use') {
+          msg = 'Email sudah terdaftar';
+        } else if (e.code == 'weak-password') {
+          msg = 'Password terlalu lemah';
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      }
     }
   }
 
@@ -68,7 +108,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🔹 Judul
                 const Text(
                   'Daftar Akun Baru',
                   style: TextStyle(
@@ -84,7 +123,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // 🔹 Nama Lengkap
                 TextFormField(
                   controller: _namaCtrl,
                   decoration: _inputDecoration('Nama Lengkap'),
@@ -92,7 +130,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 NIK
                 TextFormField(
                   controller: _nikCtrl,
                   keyboardType: TextInputType.number,
@@ -101,7 +138,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 Alamat
                 TextFormField(
                   controller: _alamatCtrl,
                   decoration: _inputDecoration('Alamat'),
@@ -109,7 +145,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 Email
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
@@ -118,7 +153,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 Password
                 TextFormField(
                   controller: _passCtrl,
                   obscureText: _obscure,
@@ -142,7 +176,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // 🔹 Tombol Daftar
                 SizedBox(
                   width: double.infinity,
                   height: 45,
@@ -168,9 +201,8 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                         ),
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: const Text(
+                      child: const Center(
+                        child: Text(
                           'Daftar',
                           style: TextStyle(
                             color: Colors.white,
@@ -185,7 +217,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
 
                 const SizedBox(height: 20),
 
-                // 🔹 Catatan
                 const Center(
                   child: Text(
                     'Catatan : Akun menunggu verifikasi admin',

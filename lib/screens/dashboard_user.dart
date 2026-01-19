@@ -1,5 +1,7 @@
 // lib/screens/dashboard_user.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme.dart';
 
 class DashboardUserPage extends StatefulWidget {
@@ -11,22 +13,38 @@ class DashboardUserPage extends StatefulWidget {
 
 class _DashboardUserPageState extends State<DashboardUserPage> {
   int currentIndex = 0;
+  String namaUser = 'Pengguna';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snap =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+    if (snap.exists) {
+      setState(() {
+        namaUser = snap.data()?['nama'] ?? 'Pengguna';
+      });
+    }
+  }
 
   void onTabTapped(int index) {
-    // panggil navigator dulu (lebih aman), lalu setState untuk highlight
     if (index == 1) {
-      // buka halaman status/riwayat
-      debugPrint('Tapped Surat tab');
       Navigator.pushNamed(context, '/status_surat');
     } else if (index == 2) {
-      debugPrint('Tapped Profil tab');
       Navigator.pushNamed(context, '/profile_user');
-    } else {
-      debugPrint('Tapped Beranda tab');
-      // tetap di beranda / tidak perlu Navigator
     }
 
-    // update currentIndex supaya icon terlihat aktif (opsional)
     setState(() => currentIndex = index);
   }
 
@@ -47,9 +65,12 @@ class _DashboardUserPageState extends State<DashboardUserPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Hallo Pengguna",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              Text(
+                "Hallo $namaUser",
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 40),
 
@@ -69,7 +90,7 @@ class _DashboardUserPageState extends State<DashboardUserPage> {
         currentIndex: currentIndex,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
-        onTap: onTabTapped, // panggil fungsi onTabTapped
+        onTap: onTabTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
           BottomNavigationBarItem(

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1028659793302",
+    "project_id": "esuratapp",
+    "storage_bucket": "esuratapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1028659793302:android:216c28609ed141dc7fe1b7",
+        "android_client_info": {
+          "package_name": "com.example.e_surat_desa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh4mGkAj44q64F1s7s8XC9PkDOn2DQZ2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1028659793302:android:ce10c1c969d4e6ec7fe1b7",
+        "android_client_info": {
+          "package_name": "com.example.suratdesa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh4mGkAj44q64F1s7s8XC9PkDOn2DQZ2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
